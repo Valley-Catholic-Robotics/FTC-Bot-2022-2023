@@ -10,7 +10,7 @@ This GitHub repository contains the source code that is used to build an Android
 If you are new to robotics or new to the *FIRST* Tech Challenge, then you should consider reviewing the [FTC Tutorial](https://docs.wpilib.org/en/stable/index.html) to get familiar with how to use the control system:
 
 ## Downloading the Project
-Here
+Clone the project the your local system and run required dependencies.
 
 ## Getting Help
 ### User Documentation and Tutorials
