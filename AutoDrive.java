@@ -19,10 +19,10 @@ import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.robotcore.external.tfod.TFObjectDetector;
 
 import java.util.List;
-
+//69.5in
 @Autonomous(name = "AutoDrive", group = "Concept")
 //@Disabled
-public class SkystoneTesting extends LinearOpMode {
+public class AutoDrive extends LinearOpMode {
    // [Declare OpMode members]
    // SYSTEM OpMODE MEMBERS
    private ElapsedTime runtime = new ElapsedTime();
@@ -31,29 +31,33 @@ public class SkystoneTesting extends LinearOpMode {
    private DcMotor BRDrive;                //                  |         |
    private DcMotor BLDrive;                //       Front -->  |         |  <-- Rear
    private DcMotor FLDrive;                //                  |_________|
-   private DcMotor arm;                //   FL Drive -->  //         \\  <-- BL Drive
+   private DcMotor arm1;                //   FL Drive -->  //         \\  <-- BL Drive
+   private DcMotor arm2;
    // SERVO OpMODE MEMBERS                 
-   private Servo claw;
-   
+   private Servo claw1;
+   private Servo claw2;
    // SENSOR OpMODE MEMBERS
    //(None)
    // MOTOR VARIABLES
-   private double FPLeftUp = 1.0;
-   private double FPRightUp = 0.0;
-   private double FPLeftDown = 0.0;
-   private double FPRightDown = 1.0;
-   private double speed = 0.9;
-
+   private double speed = 0.8;
+    private double time=0;
    //TENSORFLOW VARIABLES
-   private static final String TFOD_MODEL_ASSET = "Skystone.tflite";
-   private static final String LABEL_FIRST_ELEMENT = "Stone";
-   private static final String LABEL_SECOND_ELEMENT = "Skystone";
+   private static final String TFOD_MODEL_ASSET = "Cone.tflite";
+   private static final String[] LABEL={
+       "Blue",
+       "Red",
+       "Black"  
+   };
+   
    private boolean skystoneFound = false;
    private int blockPos= 0;
-
+   private double start=0;
+    private double end=1;
+    private double middle1=0.55;
+    private double middle2=0.4;
+    private int stop=0;
    //VUFORIA KEY INITIALIZATION
-   private static final String VUFORIA_KEY =
-           "AQicf7n/////AAABmRyml1/1m000nhFYuPY4fv9jx2C/APw5+KXt1Y2pwdh3nl+Qx07i2B27J+VDaiu2ym9K5hIESTPVZbsIwk+WS7tgERaeuIC6S48XD2Ypls1IXQDmYfuDoUQEfdtAFXHBa/AcLrZA0u7bvVzS1hIXx3KM4oz4/e8MG9xOWr3UDyx5O/ch3PBc9KtEQY+nGg3kkEF7V+1HOF6e1++u5qjbNrPJoS87W3NIXpCnVCBkVmM02hHhxd8O2N7xt8Zk6ss4fwMZxSi4wb3Qyss3nZcs/BnpJDBnbzo1UPh+0xE2t0zeSnTIdzYvdxaOiu74Bfia27vu3pQ0+gOqIJyduCvJd7PnarLPoIzRwSmZfqGvjRt3";
+   private static final String VUFORIA_KEY ="AXiadPX/////AAABmXO/436A10Bir5qRFHntJaAq5Bk5KctD+d5kjBHoKKhrocEamVb/dco5UIeJx52f0a6FUgm3k2t3fTLXrODhEgjXfI+GRg4fehfN53sbZjPxnNZup1TGZbuZuNZ+ZziAKxgfb8hgmnJ6l7WXSc/MGVw+aJCpoQRccXzBexgZSqgHgkPeoEUgPENY7beWczuIpBtRpvEZOcu6qqUgO6AVcBHSz9nLHfd4LiYjpSeRP3nJ8U69yevSBkXsv/rsYTZzNZ56/QBqL1u7+v9E/23B515U7vwD0u5CM++YqTW9sic+MWOAwhis2ORqZMx4gWXO1cTGQ1sR+dWSrIzzi9SPPiH7yRJGxdMVd7aUmjxFpgFV";
    //INSTANTIATE VUFORIA LOCALIZATION ENGINE
    private VuforiaLocalizer vuforia;
    //INSTANTIATE TENSORFLOW OBJECT DETECTION
@@ -61,18 +65,21 @@ public class SkystoneTesting extends LinearOpMode {
 
    @Override
    public void runOpMode() {
-       telemetry.addData("System", "Online");
+       telemetry.addData("System", "online");
        telemetry.update();
 
        // Initialize the hardware variables. Note that the strings used here as parameters
        // to 'get' must correspond to the names assigned during the robot configuration
        // step (using the FTC Robot Controller app on the phone).
-       FRDrive = hardwareMap.get(DcMotor.class, "FRDrive");
-       BRDrive = hardwareMap.get(DcMotor.class, "BRDrive");
-       BLDrive = hardwareMap.get(DcMotor.class, "BLDrive");
-       FLDrive = hardwareMap.get(DcMotor.class, "FLDrive");
-       arm = hardwareMap.get(DcMotor.class, "arm");
-       claw = hardwareMap.get(Servo.class, "claw");
+       FRDrive = hardwareMap.get(DcMotor.class, "FR");
+       BRDrive = hardwareMap.get(DcMotor.class, "BR");
+       BLDrive = hardwareMap.get(DcMotor.class, "BL");
+       FLDrive = hardwareMap.get(DcMotor.class, "FL");
+       arm1 = hardwareMap.get(DcMotor.class, "arm1");
+       arm2 = hardwareMap.get(DcMotor.class, "arm2");
+
+       claw1 = hardwareMap.get(Servo.class, "claw1");
+       claw2 = hardwareMap.get(Servo.class, "claw2");
        
 
        FRDrive.setDirection(DcMotor.Direction.REVERSE);
@@ -80,323 +87,241 @@ public class SkystoneTesting extends LinearOpMode {
        BLDrive.setDirection(DcMotor.Direction.FORWARD);
        FLDrive.setDirection(DcMotor.Direction.FORWARD);
 
-       arm.setDirection(DcMotor.Direction.REVERSE);
-       claw.setPosition(0);
+       arm1.setDirection(DcMotor.Direction.REVERSE);
+       arm2.setDirection(DcMotor.Direction.FORWARD);
 
+       
+
+       //Continue using encoders normally
+       FRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+       BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+       BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+       FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+       arm1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+    arm2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+
+        arm1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
        // The TFObjectDetector uses the camera frames from the VuforiaLocalizer, so we create that first.
-       initVuforia();
+       //initVuforia();
 
-       if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
-           initTfod();
-       } else {
-           telemetry.addData("Sorry!", "This device is not compatible with TFOD");
-       }
+       //if (ClassFactory.getInstance().canCreateTFObjectDetector()) {
+            //initTfod();
+      // } else {
+          // telemetry.addData("Sorry!", "This device is not compatible with TFOD");
+       //}
 
        //Activate TensorFlow Object Detection before we wait for the start command.
        //Do it here so that the Camera Stream window will have the TensorFlow annotations visible.
-       if (tfod != null) {
+     /*  if (tfod != null) {
            tfod.activate();
+
+           tfod.setZoom(1, 16.0/9.0);
        }
-
+        */
+        
        waitForStart();
-
+       
        if (opModeIsActive()) {
-           arm.setPosition(1.0);
-           claw.setPosition(0.2);
-           drive(25, "FORWARD");
-           //Track distance motors traveled to determine which combination the blocks are in
-           FLDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-           FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-           FRDrive.setPower(-0.4);
-           BRDrive.setPower(0.4);
-           BLDrive.setPower(-0.4);
-           FLDrive.setPower(0.4);
-           while (opModeIsActive() && skystoneFound == false) {
-               if (tfod != null) {
-                   // getUpdatedRecognitions() will return null if no new information is available since
-                   // the last time that call was made.
-                   List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
-                   if (updatedRecognitions != null) {
-                       telemetry.addData("Objects Detected", updatedRecognitions.size());
+        claw1.setPosition(middle1);
+        claw2.setPosition(middle1);
+        /*
+             while (opModeIsActive()) {
+                if (tfod != null) {
+                    // getUpdatedRecognitions() will return null if no new information is available since
+                    // the last time that call was made.
+                    List<Recognition> updatedRecognitions = tfod.getUpdatedRecognitions();
+                    if (updatedRecognitions != null) {
+                        telemetry.addData("# Objects Detected", updatedRecognitions.size());
 
-                       // step through the list of recognitions and display boundary info.
-                       int i = 0;
-                       for (Recognition recognition : updatedRecognitions) {
-                           telemetry.addData(String.format("label (%d)", i), recognition.getLabel());
-                           telemetry.addData(String.format("  left,top (%d)", i), "%.03f , %.03f",
-                                   recognition.getLeft(), recognition.getTop());
-                           telemetry.addData(String.format("  right,bottom (%d)", i), "%.03f , %.03f",
-                                   recognition.getRight(), recognition.getBottom());
-                           if (recognition.getLabel().equals("Skystone")) {
-                               skystoneFound = true;
+                        // step through the list of recognitions and display image position/size information for each one
+                        // Note: "Image number" refers to the randomized image orientation/number
+                        for (Recognition recognition : updatedRecognitions) {
+                            double col = (recognition.getLeft() + recognition.getRight()) / 2 ;
+                            double row = (recognition.getTop()  + recognition.getBottom()) / 2 ;
+                            double width  = Math.abs(recognition.getRight() - recognition.getLeft()) ;
+                            double height = Math.abs(recognition.getTop()  - recognition.getBottom()) ;
+
+                            telemetry.addData(""," ");
+                            telemetry.addData("Image", "%s (%.0f %% Conf.)", recognition.getLabel(), recognition.getConfidence() * 100 );
+                            telemetry.addData("- Position (Row/Col)","%.0f / %.0f", row, col);
+                            telemetry.addData("- Size (Width/Height)","%.0f / %.0f", width, height);
+                            if (recognition.getLabel().equals("Red")) {
+                               Cone = 1;
                                break;
                            }
-                       }
-                       telemetry.update();
-                   }
-               }
-           }
-           if (FLDrive.getCurrentPosition() >= strafeConverter(32)) {
-               blockPos = 3;
-           }
-           else if (FLDrive.getCurrentPosition() >= strafeConverter(10) && FLDrive.getCurrentPosition() < strafeConverter(32)) {
-               blockPos = 2;
-           }
-           else if (FLDrive.getCurrentPosition() < strafeConverter(10)) {
-               blockPos = 1;
-           }
-           else {
-               blockPos = 1;
-           }
-           drive(6, "RIGHT");
-           drive(50, "FORWARD");
-           claw.setPosition(0.7);
-           drive(22, "BACKWARD");
-           rotate(90, "LEFT");
-           if (blockPos == 3) {
-               drive(160, "FORWARD");
-           }
-           if (blockPos == 2) {
-               drive(150, "FORWARD");
-           }
-           if (blockPos == 1) {
-               drive(120, "FORWARD");
-           }
-           claw.setPosition(0.2);
-           drive(190, "BACKWARD");
-           rotate(100, "RIGHT");
-           drive(50, "RIGHT");
-           if (blockPos == 3) {
-               drive(15, "LEFT");
-               rotate(20, "RIGHT");
-           }
-           if (blockPos == 2) {
-               drive(5, "LEFT");
-           }
-           if (blockPos == 1) {
-               drive(25, "LEFT");
-           }
-           drive(30, "FORWARD");
-           claw.setPosition(0.7);
-           drive(10, "BACKWARD");
-           rotate(90, "LEFT");
-           drive(200, "FORWARD");
-           claw.setPosition(0.2);
-           drive(30, "BACKWARD");
-       }
+                           if (recognition.getLabel().equals("Blue")) {
+                               Cone = 2;
+                               break;
+                           }
+                           if (recognition.getLabel().equals("Black")) {
+                               Cone = 3;
+                               break;
+                           }
 
-       if (tfod != null) {
-           tfod.shutdown();
-       }
-   }
+                        }
+                        telemetry.update();
+                    }
+                }
+            */
+           
+            drive(103,"FORWARD");
+            drive(33,"RIGHT");
+           drive(29,"FORWARD");
+            claw1.setPosition(start);
+            claw2.setPosition(start);
+            sleep(200);
+            drive(6,"BACKWARD");
+            /*
+            drive(3,"LEFT");
+            rotate(43,"RIGHT");
+            drive(5,"FORWARD");
+            drive(6,"BACKWARD");
+            drive(67,"RIGHT");
+            drive(5,"FORWARD");
+            arm1.setPower(-speed);
+            arm2.setPower(-speed);
+            sleep(240);
+            arm1.setPower(0);
+            arm2.setPower(0);
+            claw1.setPosition(middle1);
+            claw2.setPosition(middle2);
+            sleep(400);
+            arm1.setPower(-speed);
+            arm2.setPower(-speed);
+            sleep(1300);
+            arm1.setPower(0);
+            arm2.setPower(0);
+            //drive(54.5,"LEFT");
+            */
+           telemetry.addData("Path", time);
+           telemetry.update();
+
+           sleep(1000);
+
+        }
+    }
+
+
 
    public void drive(double centimeters, String direction) {
-       //Reset encoders
-       FRDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       BRDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       BLDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       FLDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
        if (direction.equals("FORWARD")) {
-           //Initialize target position
-           FRDrive.setTargetPosition(converter(centimeters));
-           BRDrive.setTargetPosition(converter(centimeters));
-           BLDrive.setTargetPosition(converter(centimeters));
-           FLDrive.setTargetPosition(converter(centimeters));
-           //Initialize encoders
-           FRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           FLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           //Set power to wheels
            FRDrive.setPower(speed);
            BRDrive.setPower(speed);
            BLDrive.setPower(speed);
            FLDrive.setPower(speed);
-           while (opModeIsActive()
-                   && FRDrive.isBusy()
-                   && BRDrive.isBusy()
-                   && BLDrive.isBusy()
-                   && FLDrive.isBusy()) {
-               telemetry.addData("System", "Driving forward...");
-               telemetry.update();
-           }
+           SmartSleep(centimeters);
        }
        if (direction.equals("BACKWARD")) {
-           //Initialize target position
-           FRDrive.setTargetPosition(-converter(centimeters));
-           BRDrive.setTargetPosition(-converter(centimeters));
-           BLDrive.setTargetPosition(-converter(centimeters));
-           FLDrive.setTargetPosition(-converter(centimeters));
-           //Initialize encoders
-           FRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           FLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           //Set power to wheels
            FRDrive.setPower(-speed);
            BRDrive.setPower(-speed);
            BLDrive.setPower(-speed);
            FLDrive.setPower(-speed);
-           while (opModeIsActive()
-                   && FRDrive.isBusy()
-                   && BRDrive.isBusy()
-                   && BLDrive.isBusy()
-                   && FLDrive.isBusy()) {
-               telemetry.addData("System", "Driving backward...");
-               telemetry.update();
-           }
+           SmartSleep(centimeters);
        }
        if (direction.equals("RIGHT")) {
-           //Initialize target position
-           FRDrive.setTargetPosition(-strafeConverter(centimeters));
-           BRDrive.setTargetPosition(strafeConverter(centimeters));
-           BLDrive.setTargetPosition(-strafeConverter(centimeters));
-           FLDrive.setTargetPosition(strafeConverter(centimeters));
-           //Initialize encoders
-           FRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           FLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           //Set power to wheels
            FRDrive.setPower(-speed);
            BRDrive.setPower(speed);
            BLDrive.setPower(-speed);
            FLDrive.setPower(speed);
-           while (opModeIsActive()
-                   && FRDrive.isBusy()
-                   && BRDrive.isBusy()
-                   && BLDrive.isBusy()
-                   && FLDrive.isBusy()) {
-               telemetry.addData("System", "Driving right...");
-               telemetry.update();
-           }
+           SmartSleep3(centimeters);
        }
        if (direction.equals("LEFT")) {
-           //Initialize target position
-           FRDrive.setTargetPosition(strafeConverter(centimeters));
-           BRDrive.setTargetPosition(-strafeConverter(centimeters));
-           BLDrive.setTargetPosition(strafeConverter(centimeters));
-           FLDrive.setTargetPosition(-strafeConverter(centimeters));
-           //Initialize encoders
-           FRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           FLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           //Set power to wheels
            FRDrive.setPower(speed);
            BRDrive.setPower(-speed);
            BLDrive.setPower(speed);
            FLDrive.setPower(-speed);
-           while (opModeIsActive()
-                   && FRDrive.isBusy()
-                   && BRDrive.isBusy()
-                   && BLDrive.isBusy()
-                   && FLDrive.isBusy()) {
-               telemetry.addData("System", "Driving left...");
-               telemetry.update();
-           }
+           SmartSleep3(centimeters);
        }
        //Stop wheels
        FRDrive.setPower(0);
        BRDrive.setPower(0);
        BLDrive.setPower(0);
-       FLDrive.setPower(0);
-       //Continue using encoders normally
-       FRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       BLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+       FLDrive.setPower(0);  
    }
    public void rotate(double degrees, String direction) {
-       //Reset encoders
-       FRDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       BRDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       BLDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
-       FLDrive.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
        if (direction.equals("RIGHT")) {
-           //Initialize target position
-           FRDrive.setTargetPosition(-turnConverter(degrees));
-           BRDrive.setTargetPosition(-turnConverter(degrees));
-           BLDrive.setTargetPosition(turnConverter(degrees));
-           FLDrive.setTargetPosition(turnConverter(degrees));
-           //Initialize encoders
-           FRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           FLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           //Set power to wheels
            FRDrive.setPower(-speed);
            BRDrive.setPower(-speed);
            BLDrive.setPower(speed);
            FLDrive.setPower(speed);
-           while (opModeIsActive()
-                   && FRDrive.isBusy()
-                   && BRDrive.isBusy()
-                   && BLDrive.isBusy()
-                   && FLDrive.isBusy()) {
-               telemetry.addData("System", "Turning right...");
-               telemetry.update();
-           }
+           SmartSleep2(degrees);
+
        }
        if (direction.equals("LEFT")) {
-           //Initialize target position
-           FRDrive.setTargetPosition(turnConverter(degrees));
-           BRDrive.setTargetPosition(turnConverter(degrees));
-           BLDrive.setTargetPosition(-turnConverter(degrees));
-           FLDrive.setTargetPosition(-turnConverter(degrees));
-           //Initialize encoders
-           FRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BRDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           BLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           FLDrive.setMode(DcMotor.RunMode.RUN_TO_POSITION);
-           //Set power to wheels
            FRDrive.setPower(speed);
            BRDrive.setPower(speed);
            BLDrive.setPower(-speed);
            FLDrive.setPower(-speed);
-           while (opModeIsActive()
-                   && FRDrive.isBusy()
-                   && BRDrive.isBusy()
-                   && BLDrive.isBusy()
-                   && FLDrive.isBusy()) {
-               telemetry.addData("System", "Turning left...");
-               telemetry.update();
-           }
+           SmartSleep2(degrees);
        }
        FRDrive.setPower(0);
        BRDrive.setPower(0);
        BLDrive.setPower(0);
        FLDrive.setPower(0);
-       FRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       BLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
-       FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
    }
-   public void halt(double seconds) {
-       runtime.reset();
-       while (opModeIsActive() && runtime.seconds() < seconds) {
-           FRDrive.setPower(0);
-           BRDrive.setPower(0);
-           BLDrive.setPower(0);
-           FLDrive.setPower(0);
+   
+   public void arm(double level, double distance) {
+     if (level==3){
+       arm1.setPower(speed);
+       arm2.setPower(speed);
+       SmartSleep(armConverter(distance));
+     }
+     if (level==-3){
+       arm1.setPower(-speed);
+       arm2.setPower(-speed);
+       SmartSleep(armConverter(distance));
+     }
+      arm1.setPower(0);
+      arm2.setPower(0);
+   }
+   public void claw(double c1,double c2){
+      claw1.setPosition(c1);
+      claw2.setPosition(c2);
+   }
+   
+   public void SmartSleep(double distance) {
+        runtime.reset();
+       time+=converter(distance);
+       while (opModeIsActive() && runtime.seconds() < converter(distance)) {
        }
    }
-   public int converter(double distance) {
-       //40 cm = 288 ticks
-       distance = (distance / 40) * 288;
-       return (int)(distance);
+   public void SmartSleep2(double degree) {
+       runtime.reset();
+       time+=turnConverter(degree);
+       while (opModeIsActive() && runtime.seconds() < turnConverter(degree)) {
+           
+       }
    }
-   public int strafeConverter(double distance) {
-       //28 cm = 288 ticks
+   public void SmartSleep3(double distance) {
+       runtime.reset();
+       time+=turnConverter(distance);
+       while (opModeIsActive() && runtime.seconds() < strafeConverter(distance)) {
+           
+       }
+   }
+   public double converter(double distance) {
+       //0.04316in = 1s
+       distance =distance*0.03043;
+       return (double)(distance);
+   }
+   
+   public double armConverter(double distance) {
+       //28 cm = 288 s
        distance = (distance / 30) * 288;
-       return (int)(distance);
+       return (double)(distance);
    }
-   public int turnConverter(double angle) {
-       //288 ticks = 90 degrees
-       angle = (angle / 80) * 288;
-       return (int)(angle);
+   public double strafeConverter(double distance) {
+       //28 cm = 288 s
+       distance = distance*0.0367;
+       return (double)(distance);
    }
-
+   public double turnConverter(double angle) {
+       //1.11s = 90 degrees
+       angle = (angle / 90) * 1.11;
+       return (double)(angle);
+   }
+   /* 
    // Initialize the Vuforia localization engine.
    private void initVuforia() {
 
@@ -420,8 +345,11 @@ public class SkystoneTesting extends LinearOpMode {
        TFObjectDetector.Parameters tfodParameters = new TFObjectDetector.Parameters(tfodMonitorViewId);
        tfodParameters.minimumConfidence = 0.8;
        tfod = ClassFactory.getInstance().createTFObjectDetector(tfodParameters, vuforia);
-       tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABEL_FIRST_ELEMENT, LABEL_SECOND_ELEMENT);
+       tfod.loadModelFromAsset(TFOD_MODEL_ASSET, LABELS);
    }
+    */
+
 }
+
 
 
