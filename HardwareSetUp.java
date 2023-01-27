@@ -4,7 +4,9 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DigitalChannel;
+import com.qualcomm.hardware.bosch.BNO055IMU;
 import com.qualcomm.robotcore.util.ElapsedTime;
+
 
 
 public class HardwareSetUp
@@ -15,14 +17,12 @@ public class HardwareSetUp
     public DcMotor BLDrive;
     public DcMotor BRDrive;
 
-    public DcMotor arm;
+    public DcMotor arm1;
+    public DcMotor arm2;
     public Servo claw;
+    BNO055IMU imu;
+    DigitalChannel Touch;
     
-    //DigitalChannel digitalTouch;
-    
-    public final static double CLAW_HOME = 0.0; // Starting position for Servo Claw
-    public final static double CLAW_MIN_RANGE = 0.0; // Smallest number value allowed for servo position
-    public final static double CLAW_MAX_RANGE = 1.0; // Largest number value allowed for servo position
 
     /* local OpMode members. */
     HardwareMap hwMap;
@@ -42,20 +42,22 @@ public class HardwareSetUp
         BLDrive=hwMap.get(DcMotor.class, "BL");
         BRDrive=hwMap.get(DcMotor.class, "BR");
         
-        arm=hwMap.get(DcMotor.class, "arm");
-        claw = hwMap.servo.get("claw");// set equal to name of the servo motor in the phone
+        arm1=hwMap.get(DcMotor.class, "arm1");
+        arm2=hwMap.get(DcMotor.class, "arm2");
+        claw=hwMap.servo.get("claw1");// set equal to name of the servo motor in the phone
+
         // setPosition actually sets the servo's position and moves it
 
-        //digitalTouch = hwMap.get(DigitalChannel.class, "sensor_digital");
+        Touch = hwMap.get(DigitalChannel.class, "Touch");
         
         FLDrive.setDirection(DcMotor.Direction.REVERSE); // Set to REVERSE if using AndyMark motors
         FRDrive.setDirection(DcMotor.Direction.FORWARD);// Set to FORWARD if using AndyMark motors
         BLDrive.setDirection(DcMotor.Direction.REVERSE); // Set to REVERSE if using AndyMark motors
         BRDrive.setDirection(DcMotor.Direction.FORWARD);// Set to FORWARD if using AndyMark motors
         
-        arm.setDirection(DcMotor.Direction.REVERSE);
-        claw.setPosition(CLAW_HOME);
-        
+        arm1.setDirection(DcMotor.Direction.REVERSE);
+        arm2.setDirection(DcMotor.Direction.FORWARD);
+
          
         // Set all motors to zero power
         FLDrive.setPower(0);
@@ -63,18 +65,48 @@ public class HardwareSetUp
         BLDrive.setPower(0);
         BRDrive.setPower(0);
         
-        arm.setPower(0);
+
 
         // Set all motors to run without encoders.
         // May want to use RUN_USING_ENCODERS if encoders are installed.
+        //FLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //FRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //BLDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        //BRDrive.setMode(DcMotor.RunMode.RUN_USING_ENCODER);
+        
         FLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         FRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         BLDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         BRDrive.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
         
-        arm.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        arm1.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        arm2.setMode(DcMotor.RunMode.RUN_WITHOUT_ENCODER);
+        FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //FRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        //BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         
-        //digitalTouch.setMode(DigitalChannel.Mode.INPUT);
+        //FLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        FRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        BLDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        //BRDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        
+
+        arm1.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        arm2.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+       Touch.setMode(DigitalChannel.Mode.INPUT);
+       
+        imu = hwMap.get(BNO055IMU.class, "imu");
+        BNO055IMU.Parameters parameters = new BNO055IMU.Parameters();
+        // Technically this is the default, however specifying it is clearer
+        parameters.angleUnit = BNO055IMU.AngleUnit.RADIANS;
+        // Without this, data retrieving from the IMU throws an exception
+        imu.initialize(parameters);
+       
+
+        // Retrieve the IMU from the hardware map
+        
 
     }
  }
