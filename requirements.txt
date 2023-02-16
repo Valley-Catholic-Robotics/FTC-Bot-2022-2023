@@ -1,3 +1,12 @@
 ## All libraries & dependencies
+Road-Runner-Quickstart:
+- https://github.com/acmerobotics/road-runner-quickstart
 
-- 
+MeepMeep:
+- https://github.com/NoahBres/MeepMeep
+
+EasyOpenCV:
+https://github.com/OpenFTC/EasyOpenCV
+
+EasyOpenCV-AprilTags:
+https://github.com/OpenFTC/EOCV-AprilTag-Plugin
